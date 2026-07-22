@@ -23,7 +23,7 @@ export function App() {
     <main className={`app theme-${settings.theme}`}>
       <TopBar selectedGame={selectedGame} mode={mode} onGameChange={setGame} onModeChange={setMode} />
       <div className="layout">
-        <GameView gameId={selectedGame} mode={mode} settings={settings} onResult={handleResult} />
+        <GameView key={selectedGame} gameId={selectedGame} mode={mode} settings={settings} onResult={handleResult} />
         <div className="side">
           <SettingsPanel settings={settings} onChange={updateSettings} />
           <StatsPanel game={selectedGame} stats={stats} />
