@@ -58,9 +58,10 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
     if (!aiTurn) return;
     setIsAiThinking(true);
     const timer = window.setTimeout(() => {
-      const move = registered.ai(state, settings.difficulty);
-      if (move !== null) applyMove(move);
-      setIsAiThinking(false);
+      void registered.ai(state, settings.difficulty).then((move) => {
+        if (move !== null) applyMove(move);
+        setIsAiThinking(false);
+      });
     }, settings.animationSpeed === "fast" ? 80 : 250);
     return () => {
       window.clearTimeout(timer);

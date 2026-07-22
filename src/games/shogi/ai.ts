@@ -10,6 +10,7 @@ import {
   type ShogiPiece,
   type ShogiState
 } from "./shogi";
+import { findShogiMateMove } from "./checkmate";
 
 interface ScoredMove {
   move: ShogiMove;
@@ -124,5 +125,7 @@ const stableNoise = (move: ShogiMove): number => {
 export const chooseShogiMove = (state: ShogiState, level: Difficulty): ShogiMove | null => {
   const legal = getShogiLegalMoves(state).filter((move) => move.resign !== true);
   if (legal.length === 0) return null;
+  const mateMove = findShogiMateMove(state, level === "advanced" ? 3 : 1);
+  if (mateMove !== null) return mateMove;
   return legal.map((move) => scoreMove(state, move, level)).sort((a, b) => b.score - a.score)[0].move;
 };

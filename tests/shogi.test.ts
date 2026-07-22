@@ -4,9 +4,11 @@ import {
   createInitialShogiState,
   getShogiLegalMoves,
   isShogiInCheck,
+  applyShogiMoveUnchecked,
   type ShogiPiece
 } from "../src/games/shogi/shogi";
 import { chooseShogiMove } from "../src/games/shogi/ai";
+import { findShogiMateMove } from "../src/games/shogi/checkmate";
 
 describe("shogi", () => {
   it("generates initial moves", () => {
@@ -49,5 +51,20 @@ describe("shogi", () => {
     board[4][5] = { owner: "white", kind: "B" };
     const move = chooseShogiMove({ ...state, board, currentPlayer: "black" }, "intermediate");
     expect(move?.to).toEqual({ row: 4, col: 5 });
+  });
+
+  it("finds a simple one-move mate", () => {
+    const state = createInitialShogiState();
+    const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));
+    board[8][8] = { owner: "black", kind: "K" };
+    board[0][0] = { owner: "white", kind: "K" };
+    board[2][0] = { owner: "black", kind: "R" };
+    board[2][1] = { owner: "black", kind: "G" };
+    board[1][2] = { owner: "black", kind: "G" };
+    const move = findShogiMateMove({ ...state, board, currentPlayer: "black" }, 1);
+    expect(move).not.toBeNull();
+    const next = applyShogiMoveUnchecked({ ...state, board, currentPlayer: "black" }, move!);
+    expect(isShogiInCheck(next, "white")).toBe(true);
+    expect(getShogiLegalMoves(next).filter((reply) => reply.resign !== true)).toHaveLength(0);
   });
 });

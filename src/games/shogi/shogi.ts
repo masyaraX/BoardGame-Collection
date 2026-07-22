@@ -1,4 +1,5 @@
 import { oppositePlayer, type GameAdapter, type Player, type Result } from "../../common/types";
+import { generateRawShogiPieceMoves, generateShogiPseudoLegalMoves } from "./moveGeneration";
 
 export type PieceKind = "K" | "R" | "B" | "G" | "S" | "N" | "L" | "P";
 export type PromotedKind = "PR" | "PB" | "PS" | "PN" | "PL" | "PP";
@@ -26,8 +27,6 @@ export interface ShogiState {
 }
 
 const size = 9;
-const promotable: PieceKind[] = ["R", "B", "S", "N", "L", "P"];
-const goldLike: ShogiKind[] = ["G", "PS", "PN", "PL", "PP"];
 export const shogiPieceValues: Record<ShogiKind, number> = {
   K: 10000,
   R: 900,
@@ -47,13 +46,6 @@ export const shogiPieceValues: Record<ShogiKind, number> = {
 
 export const cloneShogiBoard = (board: (ShogiPiece | null)[][]): (ShogiPiece | null)[][] =>
   board.map((row) => row.map((piece) => (piece === null ? null : { ...piece })));
-
-const inBounds = (row: number, col: number): boolean =>
-  row >= 0 && row < size && col >= 0 && col < size;
-
-const forward = (owner: Player): number => (owner === "black" ? -1 : 1);
-const promotionZone = (owner: Player, row: number): boolean =>
-  owner === "black" ? row <= 2 : row >= 6;
 
 const promoteKind = (kind: ShogiKind): ShogiKind => {
   if (kind === "R") return "PR";
@@ -102,72 +94,6 @@ export const createInitialShogiState = (): ShogiState => {
   return { board, hands: { black: {}, white: {} }, currentPlayer: "black", history: [], resignedBy: null };
 };
 
-const pushStep = (
-  moves: ShogiMove[],
-  board: (ShogiPiece | null)[][],
-  owner: Player,
-  from: { row: number; col: number },
-  dr: number,
-  dc: number
-): void => {
-  const row = from.row + dr;
-  const col = from.col + dc;
-  if (!inBounds(row, col) || board[row][col]?.owner === owner) {
-    return;
-  }
-  moves.push({ from, to: { row, col } });
-};
-
-const pushSlide = (
-  moves: ShogiMove[],
-  board: (ShogiPiece | null)[][],
-  owner: Player,
-  from: { row: number; col: number },
-  dr: number,
-  dc: number
-): void => {
-  let row = from.row + dr;
-  let col = from.col + dc;
-  while (inBounds(row, col)) {
-    if (board[row][col]?.owner === owner) break;
-    moves.push({ from, to: { row, col } });
-    if (board[row][col] !== null) break;
-    row += dr;
-    col += dc;
-  }
-};
-
-const rawPieceMoves = (state: ShogiState, row: number, col: number): ShogiMove[] => {
-  const piece = state.board[row][col];
-  if (piece === null) return [];
-  const moves: ShogiMove[] = [];
-  const from = { row, col };
-  const f = forward(piece.owner);
-  const add = (dr: number, dc: number): void => pushStep(moves, state.board, piece.owner, from, dr, dc);
-  const slide = (dr: number, dc: number): void => pushSlide(moves, state.board, piece.owner, from, dr, dc);
-  if (piece.kind === "K") [-1, 0, 1].forEach((dr) => [-1, 0, 1].forEach((dc) => (dr || dc ? add(dr, dc) : undefined)));
-  if (piece.kind === "R" || piece.kind === "PR") [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dr, dc]) => slide(dr, dc));
-  if (piece.kind === "B" || piece.kind === "PB") [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([dr, dc]) => slide(dr, dc));
-  if (piece.kind === "PR") [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([dr, dc]) => add(dr, dc));
-  if (piece.kind === "PB") [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dr, dc]) => add(dr, dc));
-  if (goldLike.includes(piece.kind)) [[f, 0], [f, 1], [f, -1], [0, 1], [0, -1], [-f, 0]].forEach(([dr, dc]) => add(dr, dc));
-  if (piece.kind === "S") [[f, 0], [f, 1], [f, -1], [-f, 1], [-f, -1]].forEach(([dr, dc]) => add(dr, dc));
-  if (piece.kind === "N") [[f * 2, 1], [f * 2, -1]].forEach(([dr, dc]) => add(dr, dc));
-  if (piece.kind === "L") slide(f, 0);
-  if (piece.kind === "P") add(f, 0);
-  return moves.flatMap((move) => withPromotionOptions(state, move, piece));
-};
-
-const withPromotionOptions = (state: ShogiState, move: ShogiMove, piece: ShogiPiece): ShogiMove[] => {
-  const base = demoteShogiKind(piece.kind);
-  if (!promotable.includes(base) || piece.kind !== base) return [move];
-  const canPromote = promotionZone(piece.owner, move.from!.row) || promotionZone(piece.owner, move.to.row);
-  if (!canPromote) return [move];
-  const mustPromote = (base === "P" || base === "L") && (piece.owner === "black" ? move.to.row === 0 : move.to.row === 8);
-  if (base === "N" && (piece.owner === "black" ? move.to.row <= 1 : move.to.row >= 7)) return [{ ...move, promote: true }];
-  return mustPromote ? [{ ...move, promote: true }] : [move, { ...move, promote: true }];
-};
-
 export const applyShogiMoveUnchecked = (state: ShogiState, move: ShogiMove): ShogiState => {
   if (move.resign === true) return { ...state, resignedBy: state.currentPlayer };
   const board = cloneShogiBoard(state.board);
@@ -205,33 +131,11 @@ export const isShogiInCheck = (state: ShogiState, player: Player): boolean => {
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
       if (state.board[row][col]?.owner === oppositePlayer(player)) {
-        if (rawPieceMoves(state, row, col).some((move) => move.to.row === king.row && move.to.col === king.col)) return true;
+        if (generateRawShogiPieceMoves(state, row, col).some((move) => move.to.row === king.row && move.to.col === king.col)) return true;
       }
     }
   }
   return false;
-};
-
-const dropMoves = (state: ShogiState): ShogiMove[] => {
-  const moves: ShogiMove[] = [];
-  const hand = state.hands[state.currentPlayer];
-  for (const [kind, count] of Object.entries(hand) as [PieceKind, number | undefined][]) {
-    if ((count ?? 0) <= 0) continue;
-    for (let row = 0; row < size; row += 1) {
-      for (let col = 0; col < size; col += 1) {
-        if (state.board[row][col] !== null || isIllegalDrop(state, kind, row, col)) continue;
-        moves.push({ drop: kind, to: { row, col } });
-      }
-    }
-  }
-  return moves;
-};
-
-const isIllegalDrop = (state: ShogiState, kind: PieceKind, row: number, col: number): boolean => {
-  if ((kind === "P" || kind === "L") && (state.currentPlayer === "black" ? row === 0 : row === 8)) return true;
-  if (kind === "N" && (state.currentPlayer === "black" ? row <= 1 : row >= 7)) return true;
-  if (kind !== "P") return false;
-  return state.board.some((line) => line[col]?.owner === state.currentPlayer && line[col]?.kind === "P");
 };
 
 const capturesKing = (state: ShogiState, move: ShogiMove): boolean =>
@@ -246,13 +150,7 @@ const isPawnDropMate = (state: ShogiState, move: ShogiMove): boolean => {
 
 export const getShogiLegalMoves = (state: ShogiState, enforcePawnDropMate = true): ShogiMove[] => {
   if (state.resignedBy !== null) return [];
-  const moves: ShogiMove[] = [];
-  for (let row = 0; row < size; row += 1) {
-    for (let col = 0; col < size; col += 1) {
-      if (state.board[row][col]?.owner === state.currentPlayer) moves.push(...rawPieceMoves(state, row, col));
-    }
-  }
-  moves.push(...dropMoves(state), { to: { row: -1, col: -1 }, resign: true });
+  const moves = [...generateShogiPseudoLegalMoves(state), { to: { row: -1, col: -1 }, resign: true }];
   return moves.filter((move) => {
     if (move.resign === true) return true;
     if (capturesKing(state, move) || (enforcePawnDropMate && isPawnDropMate(state, move))) return false;
