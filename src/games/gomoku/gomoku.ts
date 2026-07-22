@@ -1,4 +1,13 @@
 import { oppositePlayer, type GameAdapter, type Player, type Result } from "../../common/types";
+import {
+  createGomokuBoard,
+  findGomokuWinnerFromBoard,
+  hasAnyEmptyGomokuCell,
+  isForbiddenGomokuMove,
+  isOnGomokuBoard,
+  cloneGomokuBoard,
+  gomokuSize
+} from "./rules";
 
 export type GomokuCell = Player | null;
 export type GomokuRule = "free" | "renju";
@@ -16,56 +25,10 @@ export interface GomokuState {
   history: GomokuMove[];
 }
 
-const size = 15;
-const directions = [
-  [1, 0],
-  [0, 1],
-  [1, 1],
-  [1, -1]
-] as const;
-
-const createBoard = (): GomokuCell[][] =>
-  Array.from({ length: size }, () => Array.from<GomokuCell>({ length: size }).fill(null));
-
-const inBounds = (row: number, col: number): boolean =>
-  row >= 0 && row < size && col >= 0 && col < size;
-
-const countLine = (board: GomokuCell[][], row: number, col: number, dr: number, dc: number): number => {
-  const player = board[row][col];
-  if (player === null) {
-    return 0;
-  }
-  let total = 1;
-  for (const sign of [-1, 1]) {
-    let nextRow = row + dr * sign;
-    let nextCol = col + dc * sign;
-    while (inBounds(nextRow, nextCol) && board[nextRow][nextCol] === player) {
-      total += 1;
-      nextRow += dr * sign;
-      nextCol += dc * sign;
-    }
-  }
-  return total;
-};
-
-export const findGomokuWinner = (board: GomokuCell[][]): Player | null => {
-  for (let row = 0; row < size; row += 1) {
-    for (let col = 0; col < size; col += 1) {
-      if (board[row][col] === null) {
-        continue;
-      }
-      if (directions.some(([dr, dc]) => countLine(board, row, col, dr, dc) >= 5)) {
-        return board[row][col];
-      }
-    }
-  }
-  return null;
-};
-
-const hasEmptyCell = (board: GomokuCell[][]): boolean => board.some((row) => row.some((cell) => cell === null));
+export const findGomokuWinner = findGomokuWinnerFromBoard;
 
 export const createInitialGomokuState = (): GomokuState => ({
-  board: createBoard(),
+  board: createGomokuBoard(),
   currentPlayer: "black",
   rule: "free",
   forbiddenEnabled: false,
@@ -77,9 +40,13 @@ export const getGomokuLegalMoves = (state: GomokuState): GomokuMove[] => {
     return [];
   }
   const moves: GomokuMove[] = [];
-  for (let row = 0; row < size; row += 1) {
-    for (let col = 0; col < size; col += 1) {
-      if (state.board[row][col] === null) {
+  for (let row = 0; row < gomokuSize; row += 1) {
+    for (let col = 0; col < gomokuSize; col += 1) {
+      const move = { row, col };
+      if (
+        state.board[row][col] === null &&
+        !(state.rule === "renju" && state.forbiddenEnabled && isForbiddenGomokuMove(state.board, move, state.currentPlayer))
+      ) {
         moves.push({ row, col });
       }
     }
@@ -88,10 +55,14 @@ export const getGomokuLegalMoves = (state: GomokuState): GomokuMove[] => {
 };
 
 export const applyGomokuMove = (state: GomokuState, move: GomokuMove): GomokuState => {
-  if (!inBounds(move.row, move.col) || state.board[move.row][move.col] !== null) {
+  if (
+    !isOnGomokuBoard(move.row, move.col) ||
+    state.board[move.row][move.col] !== null ||
+    (state.rule === "renju" && state.forbiddenEnabled && isForbiddenGomokuMove(state.board, move, state.currentPlayer))
+  ) {
     return state;
   }
-  const board = state.board.map((row) => [...row]);
+  const board = cloneGomokuBoard(state.board);
   board[move.row][move.col] = state.currentPlayer;
   return {
     ...state,
@@ -106,7 +77,7 @@ export const getGomokuResult = (state: GomokuState): Result => {
   if (winner !== null) {
     return { winner, reason: "5つ並びました" };
   }
-  if (!hasEmptyCell(state.board)) {
+  if (!hasAnyEmptyGomokuCell(state.board)) {
     return { winner: "draw", reason: "盤面が埋まりました" };
   }
   return { winner: null, reason: "対局中" };

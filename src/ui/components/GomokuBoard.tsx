@@ -1,4 +1,5 @@
 import type { GomokuMove, GomokuState } from "../../games/gomoku/gomoku";
+import { getGomokuCandidateMoves } from "../../games/gomoku/candidates";
 
 interface GomokuBoardProps {
   state: GomokuState;
@@ -9,16 +10,18 @@ interface GomokuBoardProps {
 
 export function GomokuBoard({ state, legalMoves, lastMove, onMove }: GomokuBoardProps) {
   const legal = new Set(legalMoves.map((move) => `${move.row}:${move.col}`));
+  const candidates = new Set(getGomokuCandidateMoves(state.board, 1).map((move) => `${move.row}:${move.col}`));
   return (
     <div className="board gomoku-board" role="grid" aria-label="五目盤">
       {state.board.map((row, rowIndex) =>
         row.map((cell, colIndex) => {
           const key = `${rowIndex}:${colIndex}`;
           const isLast = lastMove?.row === rowIndex && lastMove.col === colIndex;
+          const isCandidate = candidates.has(key);
           return (
             <button
               aria-label={`${rowIndex + 1}行 ${colIndex + 1}列`}
-              className={isLast ? "cell last-move" : "cell"}
+              className={["cell", isLast ? "last-move" : "", isCandidate ? "candidate" : ""].join(" ")}
               disabled={!legal.has(key)}
               key={key}
               onClick={() => onMove({ row: rowIndex, col: colIndex })}
