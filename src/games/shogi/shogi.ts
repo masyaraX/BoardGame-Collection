@@ -28,8 +28,24 @@ export interface ShogiState {
 const size = 9;
 const promotable: PieceKind[] = ["R", "B", "S", "N", "L", "P"];
 const goldLike: ShogiKind[] = ["G", "PS", "PN", "PL", "PP"];
+export const shogiPieceValues: Record<ShogiKind, number> = {
+  K: 10000,
+  R: 900,
+  B: 800,
+  G: 600,
+  S: 500,
+  N: 300,
+  L: 300,
+  P: 100,
+  PR: 1150,
+  PB: 1050,
+  PS: 620,
+  PN: 620,
+  PL: 620,
+  PP: 620
+};
 
-const cloneBoard = (board: (ShogiPiece | null)[][]): (ShogiPiece | null)[][] =>
+export const cloneShogiBoard = (board: (ShogiPiece | null)[][]): (ShogiPiece | null)[][] =>
   board.map((row) => row.map((piece) => (piece === null ? null : { ...piece })));
 
 const inBounds = (row: number, col: number): boolean =>
@@ -49,7 +65,7 @@ const promoteKind = (kind: ShogiKind): ShogiKind => {
   return kind;
 };
 
-const demoteKind = (kind: ShogiKind): PieceKind => {
+export const demoteShogiKind = (kind: ShogiKind): PieceKind => {
   if (kind === "PR") return "R";
   if (kind === "PB") return "B";
   if (kind === "PS") return "S";
@@ -143,7 +159,7 @@ const rawPieceMoves = (state: ShogiState, row: number, col: number): ShogiMove[]
 };
 
 const withPromotionOptions = (state: ShogiState, move: ShogiMove, piece: ShogiPiece): ShogiMove[] => {
-  const base = demoteKind(piece.kind);
+  const base = demoteShogiKind(piece.kind);
   if (!promotable.includes(base) || piece.kind !== base) return [move];
   const canPromote = promotionZone(piece.owner, move.from!.row) || promotionZone(piece.owner, move.to.row);
   if (!canPromote) return [move];
@@ -152,9 +168,9 @@ const withPromotionOptions = (state: ShogiState, move: ShogiMove, piece: ShogiPi
   return mustPromote ? [{ ...move, promote: true }] : [move, { ...move, promote: true }];
 };
 
-const applyUnchecked = (state: ShogiState, move: ShogiMove): ShogiState => {
+export const applyShogiMoveUnchecked = (state: ShogiState, move: ShogiMove): ShogiState => {
   if (move.resign === true) return { ...state, resignedBy: state.currentPlayer };
-  const board = cloneBoard(state.board);
+  const board = cloneShogiBoard(state.board);
   const hands = { black: { ...state.hands.black }, white: { ...state.hands.white } };
   if (move.drop !== undefined) {
     board[move.to.row][move.to.col] = { owner: state.currentPlayer, kind: move.drop };
@@ -163,7 +179,7 @@ const applyUnchecked = (state: ShogiState, move: ShogiMove): ShogiState => {
     const piece = board[move.from.row][move.from.col]!;
     const captured = board[move.to.row][move.to.col];
     if (captured !== null) {
-      const kind = demoteKind(captured.kind);
+      const kind = demoteShogiKind(captured.kind);
       hands[state.currentPlayer][kind] = (hands[state.currentPlayer][kind] ?? 0) + 1;
     }
     board[move.from.row][move.from.col] = null;
@@ -173,7 +189,7 @@ const applyUnchecked = (state: ShogiState, move: ShogiMove): ShogiState => {
   return { ...next, history: [...state.history, boardKey(next)] };
 };
 
-const findKing = (state: ShogiState, player: Player): { row: number; col: number } | null => {
+export const findShogiKing = (state: ShogiState, player: Player): { row: number; col: number } | null => {
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
       const piece = state.board[row][col];
@@ -184,7 +200,7 @@ const findKing = (state: ShogiState, player: Player): { row: number; col: number
 };
 
 export const isShogiInCheck = (state: ShogiState, player: Player): boolean => {
-  const king = findKing(state, player);
+  const king = findShogiKing(state, player);
   if (king === null) return true;
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
@@ -218,7 +234,17 @@ const isIllegalDrop = (state: ShogiState, kind: PieceKind, row: number, col: num
   return state.board.some((line) => line[col]?.owner === state.currentPlayer && line[col]?.kind === "P");
 };
 
-export const getShogiLegalMoves = (state: ShogiState): ShogiMove[] => {
+const capturesKing = (state: ShogiState, move: ShogiMove): boolean =>
+  move.resign !== true && state.board[move.to.row]?.[move.to.col]?.kind === "K";
+
+const isPawnDropMate = (state: ShogiState, move: ShogiMove): boolean => {
+  if (move.drop !== "P") return false;
+  const next = applyShogiMoveUnchecked(state, move);
+  const defender = next.currentPlayer;
+  return isShogiInCheck(next, defender) && getShogiLegalMoves(next, false).filter((candidate) => candidate.resign !== true).length === 0;
+};
+
+export const getShogiLegalMoves = (state: ShogiState, enforcePawnDropMate = true): ShogiMove[] => {
   if (state.resignedBy !== null) return [];
   const moves: ShogiMove[] = [];
   for (let row = 0; row < size; row += 1) {
@@ -227,12 +253,16 @@ export const getShogiLegalMoves = (state: ShogiState): ShogiMove[] => {
     }
   }
   moves.push(...dropMoves(state), { to: { row: -1, col: -1 }, resign: true });
-  return moves.filter((move) => move.resign === true || !isShogiInCheck(applyUnchecked(state, move), state.currentPlayer));
+  return moves.filter((move) => {
+    if (move.resign === true) return true;
+    if (capturesKing(state, move) || (enforcePawnDropMate && isPawnDropMate(state, move))) return false;
+    return !isShogiInCheck(applyShogiMoveUnchecked(state, move), state.currentPlayer);
+  });
 };
 
 export const applyShogiMove = (state: ShogiState, move: ShogiMove): ShogiState => {
   const legal = getShogiLegalMoves(state).some((candidate) => serializeShogiMove(candidate) === serializeShogiMove(move));
-  return legal ? applyUnchecked(state, move) : state;
+  return legal ? applyShogiMoveUnchecked(state, move) : state;
 };
 
 const boardKey = (state: ShogiState): string =>

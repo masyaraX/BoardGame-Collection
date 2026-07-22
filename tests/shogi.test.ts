@@ -30,6 +30,16 @@ describe("shogi", () => {
     expect(isShogiInCheck({ ...state, board }, "white")).toBe(true);
   });
 
+  it("does not allow capturing the king as a legal move", () => {
+    const state = createInitialShogiState();
+    const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));
+    board[8][4] = { owner: "black", kind: "K" };
+    board[0][4] = { owner: "white", kind: "K" };
+    board[1][4] = { owner: "black", kind: "R" };
+    const moves = getShogiLegalMoves({ ...state, board, currentPlayer: "black" });
+    expect(moves.some((move) => move.to.row === 0 && move.to.col === 4)).toBe(false);
+  });
+
   it("prefers winning material with the shogi AI", () => {
     const state = createInitialShogiState();
     const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));
