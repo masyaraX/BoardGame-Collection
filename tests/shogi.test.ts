@@ -5,6 +5,7 @@ import {
   getShogiLegalMoves,
   isShogiInCheck,
   applyShogiMoveUnchecked,
+  serializeShogiMove,
   type ShogiPiece
 } from "../src/games/shogi/shogi";
 import { chooseShogiMove } from "../src/games/shogi/ai";
@@ -66,6 +67,15 @@ describe("shogi", () => {
     board[4][5] = { owner: "white", kind: "B" };
     const move = chooseShogiMove({ ...state, board, currentPlayer: "black" }, "intermediate");
     expect(move?.to).toEqual({ row: 4, col: 5 });
+  });
+
+  it("keeps shogi AI difficulty profiles separated", () => {
+    const state = createInitialShogiState();
+    const beginner = chooseShogiMove(state, "beginner");
+    const advanced = chooseShogiMove(state, "advanced");
+    expect(beginner).not.toBeNull();
+    expect(advanced).not.toBeNull();
+    expect(serializeShogiMove(advanced!)).not.toBe(serializeShogiMove(beginner!));
   });
 
   it("finds a simple one-move mate", () => {

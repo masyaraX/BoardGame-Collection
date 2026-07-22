@@ -17,13 +17,14 @@ interface ScoredMove {
   score: number;
 }
 
-const maxReplySamples: Record<Difficulty, number> = {
-  beginner: 0,
-  intermediate: 8,
-  advanced: 14
+const difficultyConfig: Record<Difficulty, { width: number; depth: number; replySamples: number; noise: number }> = {
+  beginner: { width: 8, depth: 1, replySamples: 0, noise: 180 },
+  intermediate: { width: 12, depth: 1, replySamples: 8, noise: 0 },
+  advanced: { width: 14, depth: 2, replySamples: 10, noise: 0 }
 };
 
 const handValueFactor = 0.82;
+const mateScore = 1_000_000;
 
 const pieceValue = (kind: ShogiKind): number => shogiPieceValues[kind];
 
@@ -69,13 +70,11 @@ const movingValue = (state: ShogiState, move: ShogiMove): number => {
   return moving === null ? 0 : pieceValue(moving.kind);
 };
 
-const isPromotion = (move: ShogiMove): boolean => move.promote === true;
-
 const stageBonus = (state: ShogiState, move: ShogiMove): number => {
   let score = 0;
   const capture = capturedValue(state, move);
   if (capture > 0) score += capture * 14 - movingValue(state, move) * 0.3;
-  if (isPromotion(move)) score += 260;
+  if (move.promote === true) score += 260;
   if (move.drop !== undefined) score += pieceValue(move.drop) * 0.18;
   const next = applyShogiMoveUnchecked(state, move);
   if (isShogiInCheck(next, next.currentPlayer)) score += 340;
@@ -90,26 +89,10 @@ const centerBonus = (move: ShogiMove): number => {
 const replyRisk = (state: ShogiState, perspective: Player, samples: number): number => {
   if (samples === 0) return 0;
   const current = evaluatePosition(state, perspective);
-  const replies = getShogiLegalMoves(state)
-    .filter((move) => move.resign !== true)
-    .map((move) => ({ move, score: stageBonus(state, move) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, samples);
+  const replies = orderMovesByTactics(state).slice(0, samples);
   if (replies.length === 0) return 0;
   const worst = Math.min(...replies.map(({ move }) => evaluatePosition(applyShogiMoveUnchecked(state, move), perspective)));
   return Math.max(0, current - worst);
-};
-
-const scoreMove = (state: ShogiState, move: ShogiMove, level: Difficulty): ScoredMove => {
-  const perspective = state.currentPlayer;
-  const next = applyShogiMoveUnchecked(state, move);
-  const staticScore = evaluatePosition(next, perspective);
-  const risk = replyRisk(next, perspective, maxReplySamples[level]);
-  const beginnerNoise = level === "beginner" ? stableNoise(move) * 22 : 0;
-  return {
-    move,
-    score: staticScore + stageBonus(state, move) + centerBonus(move) - risk * 0.55 + beginnerNoise
-  };
 };
 
 const stableNoise = (move: ShogiMove): number => {
@@ -122,10 +105,88 @@ const stableNoise = (move: ShogiMove): number => {
   return (seed % 9) - 4;
 };
 
-export const chooseShogiMove = (state: ShogiState, level: Difficulty): ShogiMove | null => {
+const scoreMoveOnePly = (state: ShogiState, move: ShogiMove, level: Difficulty): number => {
+  const perspective = state.currentPlayer;
+  const next = applyShogiMoveUnchecked(state, move);
+  const config = difficultyConfig[level];
+  const staticScore = evaluatePosition(next, perspective);
+  const risk = replyRisk(next, perspective, config.replySamples);
+  return staticScore + stageBonus(state, move) + centerBonus(move) - risk * 0.55 + stableNoise(move) * config.noise;
+};
+
+const orderMovesByTactics = (state: ShogiState): ScoredMove[] =>
+  getShogiLegalMoves(state)
+    .filter((move) => move.resign !== true)
+    .map((move) => ({ move, score: stageBonus(state, move) + centerBonus(move) + capturedValue(state, move) * 10 }))
+    .sort((a, b) => b.score - a.score);
+
+const orderMoves = (state: ShogiState, level: Difficulty): ScoredMove[] =>
+  getShogiLegalMoves(state)
+    .filter((move) => move.resign !== true)
+    .map((move) => ({ move, score: scoreMoveOnePly(state, move, level) }))
+    .sort((a, b) => b.score - a.score);
+
+const terminalScore = (state: ShogiState, perspective: Player, ply: number): number | null => {
   const legal = getShogiLegalMoves(state).filter((move) => move.resign !== true);
-  if (legal.length === 0) return null;
+  if (legal.length > 0) return null;
+  if (isShogiInCheck(state, state.currentPlayer)) {
+    return state.currentPlayer === perspective ? -mateScore + ply : mateScore - ply;
+  }
+  return 0;
+};
+
+const minimax = (state: ShogiState, depth: number, perspective: Player, alpha: number, beta: number, ply: number): number => {
+  const terminal = terminalScore(state, perspective, ply);
+  if (terminal !== null) return terminal;
+  if (depth === 0) return evaluatePosition(state, perspective);
+
+  const maximizing = state.currentPlayer === perspective;
+  let localAlpha = alpha;
+  let localBeta = beta;
+  const moves = orderMoves(state, "advanced").slice(0, difficultyConfig.advanced.width);
+
+  if (maximizing) {
+    let best = -Infinity;
+    for (const { move } of moves) {
+      best = Math.max(best, minimax(applyShogiMoveUnchecked(state, move), depth - 1, perspective, localAlpha, localBeta, ply + 1));
+      localAlpha = Math.max(localAlpha, best);
+      if (localAlpha >= localBeta) break;
+    }
+    return best;
+  }
+
+  let best = Infinity;
+  for (const { move } of moves) {
+    best = Math.min(best, minimax(applyShogiMoveUnchecked(state, move), depth - 1, perspective, localAlpha, localBeta, ply + 1));
+    localBeta = Math.min(localBeta, best);
+    if (localAlpha >= localBeta) break;
+  }
+  return best;
+};
+
+const chooseBeginnerMove = (state: ShogiState): ShogiMove | null => {
+  const ordered = orderMoves(state, "beginner").slice(0, 5);
+  if (ordered.length === 0) return null;
+  const index = Math.abs(stableNoise(ordered[0].move)) % Math.min(3, ordered.length);
+  return ordered[index].move;
+};
+
+const chooseSearchedMove = (state: ShogiState, level: Difficulty): ShogiMove | null => {
+  const config = difficultyConfig[level];
+  const ordered = orderMoves(state, level).slice(0, config.width);
+  if (ordered.length === 0) return null;
+  if (config.depth <= 1) return ordered[0].move;
+  return ordered
+    .map(({ move }) => ({
+      move,
+      score: minimax(applyShogiMoveUnchecked(state, move), config.depth - 1, state.currentPlayer, -Infinity, Infinity, 1)
+    }))
+    .sort((a, b) => b.score - a.score)[0].move;
+};
+
+export const chooseShogiMove = (state: ShogiState, level: Difficulty): ShogiMove | null => {
   const mateMove = findShogiMateMove(state, level === "advanced" ? 3 : 1);
   if (mateMove !== null) return mateMove;
-  return legal.map((move) => scoreMove(state, move, level)).sort((a, b) => b.score - a.score)[0].move;
+  if (level === "beginner") return chooseBeginnerMove(state);
+  return chooseSearchedMove(state, level);
 };
