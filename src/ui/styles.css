@@ -297,6 +297,20 @@ h2 {
   color: #ffffff;
 }
 
+.promotion-menu {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.promotion-menu button {
+  padding: 8px 14px;
+  font-weight: 800;
+}
+
 .side {
   display: grid;
   align-content: start;

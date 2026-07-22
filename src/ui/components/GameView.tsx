@@ -15,6 +15,11 @@ interface GameViewProps {
 
 const playerLabel: Record<Player, string> = { black: "黒", white: "白" };
 
+const moveNumberLabel = (state: AnyGameState): string => {
+  const history = "history" in state ? state.history : [];
+  return `第${history.length + 1}手`;
+};
+
 export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
   const registered = games[gameId];
   const [state, setState] = useState<AnyGameState>(() => registered.adapter.createInitialState());
@@ -90,6 +95,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
       <div className="toolbar">
         <div>
           <strong>{result.winner === null ? `${playerLabel[registered.adapter.getCurrentPlayer(state)]}番` : "終局"}</strong>
+          <span>{result.winner === null ? moveNumberLabel(state) : ""}</span>
           <span>{isAiThinking ? "AI思考中" : result.reason}</span>
         </div>
         {passMove !== undefined && <button onClick={() => applyMove(passMove)}>パス</button>}

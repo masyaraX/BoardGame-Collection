@@ -29,28 +29,56 @@ const labels: Record<string, string> = {
 
 export function ShogiBoard({ state, legalMoves, lastMove, onMove }: ShogiBoardProps) {
   const [selected, setSelected] = useState<Selection>(null);
+  const [promotionChoices, setPromotionChoices] = useState<ShogiMove[] | null>(null);
   const dropMoves = legalMoves.filter((move) => move.drop !== undefined);
   const destinations = legalMoves.filter((move) => isSelectedMove(move, selected));
-  const destinationMap = new Map(destinations.map((move) => [`${move.to.row}:${move.to.col}`, move]));
+  const destinationMap = new Map<string, ShogiMove[]>();
+  for (const move of destinations) {
+    const key = `${move.to.row}:${move.to.col}`;
+    destinationMap.set(key, [...(destinationMap.get(key) ?? []), move]);
+  }
   const selectable = new Set(
     legalMoves.filter((move) => move.from !== undefined).map((move) => `${move.from!.row}:${move.from!.col}`)
   );
 
   const clickCell = (row: number, col: number): void => {
-    const destination = destinationMap.get(`${row}:${col}`);
-    if (destination !== undefined) {
-      onMove(destination);
+    const destination = destinationMap.get(`${row}:${col}`) ?? [];
+    if (destination.length === 1) {
+      onMove(destination[0]);
       setSelected(null);
+      setPromotionChoices(null);
+      return;
+    }
+    if (destination.length > 1) {
+      setPromotionChoices(destination);
       return;
     }
     if (selectable.has(`${row}:${col}`)) {
       setSelected({ row, col });
+      setPromotionChoices(null);
     }
   };
 
   return (
     <div className="shogi-area">
-      <Hand owner="white" hand={state.hands.white} drops={dropMoves} selected={selected} onSelect={setSelected} />
+      <Hand owner="white" hand={state.hands.white} drops={dropMoves} selected={selected} onSelect={(next) => {
+        setSelected(next);
+        setPromotionChoices(null);
+      }} />
+      {promotionChoices !== null && (
+        <div className="promotion-menu" role="dialog" aria-label="成り選択">
+          <button onClick={() => {
+            onMove(promotionChoices.find((move) => move.promote === true) ?? promotionChoices[0]);
+            setSelected(null);
+            setPromotionChoices(null);
+          }}>成る</button>
+          <button onClick={() => {
+            onMove(promotionChoices.find((move) => move.promote !== true) ?? promotionChoices[0]);
+            setSelected(null);
+            setPromotionChoices(null);
+          }}>成らない</button>
+        </div>
+      )}
       <div className="board shogi-board" role="grid" aria-label="将棋盤">
         {state.board.map((row, rowIndex) =>
           row.map((piece, colIndex) => {
@@ -80,7 +108,10 @@ export function ShogiBoard({ state, legalMoves, lastMove, onMove }: ShogiBoardPr
           })
         )}
       </div>
-      <Hand owner="black" hand={state.hands.black} drops={dropMoves} selected={selected} onSelect={setSelected} />
+      <Hand owner="black" hand={state.hands.black} drops={dropMoves} selected={selected} onSelect={(next) => {
+        setSelected(next);
+        setPromotionChoices(null);
+      }} />
     </div>
   );
 }

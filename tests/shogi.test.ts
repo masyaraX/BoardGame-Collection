@@ -47,6 +47,16 @@ describe("shogi", () => {
     expect(moves.some((move) => move.to.row === 0 && move.to.col === 4)).toBe(false);
   });
 
+  it("generates promotion choices", () => {
+    const state = createInitialShogiState();
+    const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));
+    board[8][4] = { owner: "black", kind: "K" };
+    board[0][4] = { owner: "white", kind: "K" };
+    board[2][4] = { owner: "black", kind: "P" };
+    const moves = getShogiLegalMoves({ ...state, board, currentPlayer: "black" });
+    expect(moves).toContainEqual({ from: { row: 2, col: 4 }, to: { row: 1, col: 4 }, promote: true });
+  });
+
   it("prefers winning material with the shogi AI", () => {
     const state = createInitialShogiState();
     const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));

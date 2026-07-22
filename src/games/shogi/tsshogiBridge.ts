@@ -107,6 +107,13 @@ const addIfValid = (position: Position, moves: ShogiMove[], from: Square | Piece
   if (move === null || !position.isValidMove(move) || position.isPawnDropMate(move)) return;
   const converted = tsshogiMoveToShogiMove(move);
   if (converted !== null) moves.push(converted);
+  const promoted = move.withPromote();
+  if (promoted.promote && position.isValidMove(promoted)) {
+    const promotedConverted = tsshogiMoveToShogiMove(promoted);
+    if (promotedConverted !== null && !moves.some((candidate) => candidate.from?.row === promotedConverted.from?.row && candidate.from?.col === promotedConverted.from?.col && candidate.to.row === promotedConverted.to.row && candidate.to.col === promotedConverted.to.col && candidate.promote === promotedConverted.promote)) {
+      moves.push(promotedConverted);
+    }
+  }
 };
 
 export const generateTsshogiLegalMoves = (state: ShogiState): ShogiMove[] | null => {
