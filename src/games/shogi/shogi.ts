@@ -246,9 +246,11 @@ const isFourfold = (state: ShogiState): boolean => {
 export const getShogiResult = (state: ShogiState): Result => {
   if (state.resignedBy !== null) return { winner: oppositePlayer(state.resignedBy), reason: "投了" };
   if (isFourfold(state)) return { winner: "draw", reason: "千日手" };
+  const inCheck = isShogiInCheck(state, state.currentPlayer);
+  if (!inCheck) return { winner: null, reason: "対局中" };
   const legal = getShogiLegalMoves(state).filter((move) => move.resign !== true);
-  if (legal.length === 0 && isShogiInCheck(state, state.currentPlayer)) return { winner: oppositePlayer(state.currentPlayer), reason: "詰み" };
-  return { winner: null, reason: isShogiInCheck(state, state.currentPlayer) ? "王手" : "対局中" };
+  if (legal.length === 0) return { winner: oppositePlayer(state.currentPlayer), reason: "詰み" };
+  return { winner: null, reason: "王手" };
 };
 
 export const serializeShogiMove = (move: ShogiMove): string => {

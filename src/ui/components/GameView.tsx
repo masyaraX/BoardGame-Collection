@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GameId, PlayMode, Player, Settings } from "../../common/types";
 import { saveGameState } from "../../save/storage";
 import { games, type AnyGameState, type AnyMove } from "../gameRegistry";
@@ -20,6 +20,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
   const [state, setState] = useState<AnyGameState>(() => registered.adapter.createInitialState());
   const [past, setPast] = useState<AnyGameState[]>([]);
   const [lastMove, setLastMove] = useState<AnyMove | null>(null);
+  const [isAiThinking, setIsAiThinking] = useState(false);
   const result = registered.adapter.getResult(state);
   const legalMoves = useMemo(() => registered.adapter.getLegalMoves(state), [registered, state]);
   const passMove = legalMoves.find((move) => "pass" in move && move.pass === true);
@@ -29,6 +30,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
     setState(registered.adapter.createInitialState());
     setPast([]);
     setLastMove(null);
+    setIsAiThinking(false);
   }, [gameId, registered]);
 
   useEffect(() => {
@@ -42,29 +44,35 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
     if (result.winner === "white") onResult("loss");
   }, [onResult, result.winner]);
 
-  const applyMove = (move: AnyMove): void => {
+  const applyMove = useCallback((move: AnyMove): void => {
     if (result.winner !== null) return;
     setPast((items: AnyGameState[]) => [...items, state]);
     setState(registered.adapter.applyMove(state, move));
     setLastMove(move);
-  };
+  }, [registered.adapter, result.winner, state]);
 
   useEffect(() => {
     if (result.winner !== null) return;
     const current = registered.adapter.getCurrentPlayer(state);
     const aiTurn = mode === "ai-vs-ai" || (mode === "human-vs-ai" && current === "white");
     if (!aiTurn) return;
+    setIsAiThinking(true);
     const timer = window.setTimeout(() => {
       const move = registered.ai(state, settings.difficulty);
       if (move !== null) applyMove(move);
+      setIsAiThinking(false);
     }, settings.animationSpeed === "fast" ? 80 : 250);
-    return () => window.clearTimeout(timer);
-  });
+    return () => {
+      window.clearTimeout(timer);
+      setIsAiThinking(false);
+    };
+  }, [applyMove, mode, registered, result.winner, settings.animationSpeed, settings.difficulty, state]);
 
   const reset = (): void => {
     setPast([]);
     setState(registered.adapter.createInitialState());
     setLastMove(null);
+    setIsAiThinking(false);
   };
 
   const undo = (): void => {
@@ -73,6 +81,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
     setPast((items: AnyGameState[]) => items.slice(0, -1));
     setState(previous);
     setLastMove(null);
+    setIsAiThinking(false);
   };
 
   return (
@@ -80,7 +89,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
       <div className="toolbar">
         <div>
           <strong>{result.winner === null ? `${playerLabel[registered.adapter.getCurrentPlayer(state)]}番` : "終局"}</strong>
-          <span>{result.reason}</span>
+          <span>{isAiThinking ? "AI思考中" : result.reason}</span>
         </div>
         {passMove !== undefined && <button onClick={() => applyMove(passMove)}>パス</button>}
         {resignMove !== undefined && <button onClick={() => applyMove(resignMove)}>投了</button>}
