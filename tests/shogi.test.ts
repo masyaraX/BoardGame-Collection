@@ -65,17 +65,26 @@ describe("shogi", () => {
     board[0][0] = { owner: "white", kind: "K" };
     board[4][4] = { owner: "black", kind: "R" };
     board[4][5] = { owner: "white", kind: "B" };
-    const move = chooseShogiMove({ ...state, board, currentPlayer: "black" }, "intermediate");
+    const move = chooseShogiMove({ ...state, board, currentPlayer: "black" }, "intermediate", () => 0);
     expect(move?.to).toEqual({ row: 4, col: 5 });
   });
 
   it("keeps shogi AI difficulty profiles separated", () => {
     const state = createInitialShogiState();
-    const beginner = chooseShogiMove(state, "beginner");
-    const advanced = chooseShogiMove(state, "advanced");
+    const beginner = chooseShogiMove(state, "beginner", () => 0);
+    const advanced = chooseShogiMove(state, "advanced", () => 0);
     expect(beginner).not.toBeNull();
     expect(advanced).not.toBeNull();
     expect(serializeShogiMove(advanced!)).not.toBe(serializeShogiMove(beginner!));
+  });
+
+  it("varies advanced shogi AI among close candidates", () => {
+    const state = createInitialShogiState();
+    const first = chooseShogiMove(state, "advanced", () => 0);
+    const varied = chooseShogiMove(state, "advanced", () => 0.99);
+    expect(first).not.toBeNull();
+    expect(varied).not.toBeNull();
+    expect(serializeShogiMove(varied!)).not.toBe(serializeShogiMove(first!));
   });
 
   it("finds a simple one-move mate", () => {

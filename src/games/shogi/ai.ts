@@ -17,10 +17,15 @@ interface ScoredMove {
   score: number;
 }
 
-const difficultyConfig: Record<Difficulty, { width: number; depth: number; replySamples: number; noise: number }> = {
-  beginner: { width: 8, depth: 1, replySamples: 0, noise: 180 },
-  intermediate: { width: 12, depth: 1, replySamples: 8, noise: 0 },
-  advanced: { width: 14, depth: 2, replySamples: 10, noise: 0 }
+type RandomSource = () => number;
+
+const difficultyConfig: Record<
+  Difficulty,
+  { width: number; depth: number; replySamples: number; noise: number; varietyMargin: number; varietyPool: number }
+> = {
+  beginner: { width: 8, depth: 1, replySamples: 0, noise: 180, varietyMargin: 420, varietyPool: 4 },
+  intermediate: { width: 12, depth: 1, replySamples: 8, noise: 0, varietyMargin: 120, varietyPool: 3 },
+  advanced: { width: 14, depth: 2, replySamples: 10, noise: 0, varietyMargin: 90, varietyPool: 3 }
 };
 
 const handValueFactor = 0.82;
@@ -164,29 +169,39 @@ const minimax = (state: ShogiState, depth: number, perspective: Player, alpha: n
   return best;
 };
 
-const chooseBeginnerMove = (state: ShogiState): ShogiMove | null => {
-  const ordered = orderMoves(state, "beginner").slice(0, 5);
-  if (ordered.length === 0) return null;
-  const index = Math.abs(stableNoise(ordered[0].move)) % Math.min(3, ordered.length);
-  return ordered[index].move;
+const selectVariedMove = (moves: ScoredMove[], level: Difficulty, random: RandomSource): ShogiMove | null => {
+  if (moves.length === 0) return null;
+  const config = difficultyConfig[level];
+  const topScore = moves[0].score;
+  if (Math.abs(topScore) > mateScore / 2) return moves[0].move;
+  const candidates = moves
+    .filter(({ score }) => topScore - score <= config.varietyMargin)
+    .slice(0, config.varietyPool);
+  return candidates[Math.floor(random() * candidates.length)]?.move ?? moves[0].move;
 };
 
-const chooseSearchedMove = (state: ShogiState, level: Difficulty): ShogiMove | null => {
+const chooseBeginnerMove = (state: ShogiState, random: RandomSource): ShogiMove | null => {
+  const ordered = orderMoves(state, "beginner").slice(0, 5);
+  return selectVariedMove(ordered, "beginner", random);
+};
+
+const chooseSearchedMove = (state: ShogiState, level: Difficulty, random: RandomSource): ShogiMove | null => {
   const config = difficultyConfig[level];
   const ordered = orderMoves(state, level).slice(0, config.width);
   if (ordered.length === 0) return null;
-  if (config.depth <= 1) return ordered[0].move;
-  return ordered
+  if (config.depth <= 1) return selectVariedMove(ordered, level, random);
+  const searched = ordered
     .map(({ move }) => ({
       move,
       score: minimax(applyShogiMoveUnchecked(state, move), config.depth - 1, state.currentPlayer, -Infinity, Infinity, 1)
     }))
-    .sort((a, b) => b.score - a.score)[0].move;
+    .sort((a, b) => b.score - a.score);
+  return selectVariedMove(searched, level, random);
 };
 
-export const chooseShogiMove = (state: ShogiState, level: Difficulty): ShogiMove | null => {
+export const chooseShogiMove = (state: ShogiState, level: Difficulty, random: RandomSource = Math.random): ShogiMove | null => {
   const mateMove = findShogiMateMove(state, level === "advanced" ? 3 : 1);
   if (mateMove !== null) return mateMove;
-  if (level === "beginner") return chooseBeginnerMove(state);
-  return chooseSearchedMove(state, level);
+  if (level === "beginner") return chooseBeginnerMove(state, random);
+  return chooseSearchedMove(state, level, random);
 };
