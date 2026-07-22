@@ -19,6 +19,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
   const registered = games[gameId];
   const [state, setState] = useState<AnyGameState>(() => registered.adapter.createInitialState());
   const [past, setPast] = useState<AnyGameState[]>([]);
+  const [lastMove, setLastMove] = useState<AnyMove | null>(null);
   const result = registered.adapter.getResult(state);
   const legalMoves = useMemo(() => registered.adapter.getLegalMoves(state), [registered, state]);
   const passMove = legalMoves.find((move) => "pass" in move && move.pass === true);
@@ -27,6 +28,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
   useEffect(() => {
     setState(registered.adapter.createInitialState());
     setPast([]);
+    setLastMove(null);
   }, [gameId, registered]);
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
     if (result.winner !== null) return;
     setPast((items: AnyGameState[]) => [...items, state]);
     setState(registered.adapter.applyMove(state, move));
+    setLastMove(move);
   };
 
   useEffect(() => {
@@ -61,6 +64,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
   const reset = (): void => {
     setPast([]);
     setState(registered.adapter.createInitialState());
+    setLastMove(null);
   };
 
   const undo = (): void => {
@@ -68,6 +72,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
     if (previous === undefined) return;
     setPast((items: AnyGameState[]) => items.slice(0, -1));
     setState(previous);
+    setLastMove(null);
   };
 
   return (
@@ -82,9 +87,15 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
         <button onClick={undo} disabled={past.length === 0}>一手戻す</button>
         <button onClick={reset}>リセット</button>
       </div>
-      {gameId === "shogi" && <ShogiBoard state={state as never} legalMoves={legalMoves as never} onMove={applyMove} />}
-      {gameId === "gomoku" && <GomokuBoard state={state as never} legalMoves={legalMoves as never} onMove={applyMove} />}
-      {gameId === "othello" && <OthelloBoard state={state as never} legalMoves={legalMoves as never} onMove={applyMove} />}
+      {gameId === "shogi" && (
+        <ShogiBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
+      )}
+      {gameId === "gomoku" && (
+        <GomokuBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
+      )}
+      {gameId === "othello" && (
+        <OthelloBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
+      )}
     </section>
   );
 }

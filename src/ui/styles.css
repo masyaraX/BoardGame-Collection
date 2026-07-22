@@ -119,7 +119,8 @@ h2 {
 }
 
 .game-shell {
-  padding: 14px;
+  padding: 16px;
+  overflow: hidden;
 }
 
 .toolbar {
@@ -127,7 +128,7 @@ h2 {
   gap: 10px;
   align-items: center;
   justify-content: flex-end;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .toolbar div {
@@ -146,7 +147,8 @@ h2 {
   width: min(86vw, 680px);
   aspect-ratio: 1;
   margin: 0 auto;
-  border: 2px solid #453015;
+  border: 3px solid #3a2713;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35), 0 14px 28px rgba(74, 48, 18, 0.18);
 }
 
 .cell {
@@ -159,11 +161,20 @@ h2 {
   border-radius: 0;
   border-color: rgba(69, 48, 21, 0.42);
   background: rgba(220, 165, 75, 0.72);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.board .cell:disabled {
+  cursor: default;
+  opacity: 1;
 }
 
 .cell:not(:disabled):hover {
-  outline: 3px solid rgba(28, 92, 62, 0.42);
-  outline-offset: -3px;
+  background: #efc879;
+  box-shadow: inset 0 0 0 3px rgba(28, 92, 62, 0.35);
 }
 
 .gomoku-board {
@@ -181,16 +192,30 @@ h2 {
 
 .othello-board .legal::after,
 .shogi-board .legal::after {
-  width: 20%;
+  width: 26%;
   aspect-ratio: 1;
   content: "";
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.32);
+  background: rgba(27, 94, 62, 0.45);
 }
 
 .shogi-board .legal::after {
   position: absolute;
-  background: rgba(36, 95, 67, 0.36);
+  z-index: 1;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.5);
+}
+
+.cell.selected {
+  background: #f5d28f;
+  box-shadow: inset 0 0 0 4px #245f43;
+}
+
+.cell.last-move {
+  background: #f1be63;
+}
+
+.cell.last-to {
+  box-shadow: inset 0 0 0 4px #9b3b2f;
 }
 
 .stone {
@@ -215,18 +240,24 @@ h2 {
 
 .shogi-board {
   grid-template-columns: repeat(9, 1fr);
+  background: #deb15d;
 }
 
 .piece {
   display: grid;
   place-items: center;
-  width: 76%;
+  width: 78%;
   aspect-ratio: 0.8;
   clip-path: polygon(50% 0, 92% 24%, 82% 100%, 18% 100%, 8% 24%);
-  background: #f3d28a;
-  border: 1px solid #6c4719;
+  background: linear-gradient(180deg, #ffe5a5, #e8b75e);
+  border: 1px solid #704719;
+  color: #111;
   font-weight: 800;
   font-size: clamp(0.62rem, 2.1vw, 1.2rem);
+  line-height: 1;
+  text-shadow: 0 1px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 5px rgba(58, 39, 19, 0.18);
+  z-index: 2;
 }
 
 .piece.white {
@@ -239,10 +270,14 @@ h2 {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.42);
 }
 
 .hand button {
   padding: 7px 10px;
+  font-weight: 700;
 }
 
 .hand .active {

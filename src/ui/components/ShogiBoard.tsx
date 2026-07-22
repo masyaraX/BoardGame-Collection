@@ -4,6 +4,7 @@ import { type PieceKind, type ShogiMove, type ShogiState } from "../../games/sho
 interface ShogiBoardProps {
   state: ShogiState;
   legalMoves: ShogiMove[];
+  lastMove: ShogiMove | null;
   onMove: (move: ShogiMove) => void;
 }
 
@@ -26,7 +27,7 @@ const labels: Record<string, string> = {
   PP: "と"
 };
 
-export function ShogiBoard({ state, legalMoves, onMove }: ShogiBoardProps) {
+export function ShogiBoard({ state, legalMoves, lastMove, onMove }: ShogiBoardProps) {
   const [selected, setSelected] = useState<Selection>(null);
   const dropMoves = legalMoves.filter((move) => move.drop !== undefined);
   const destinations = legalMoves.filter((move) => isSelectedMove(move, selected));
@@ -56,10 +57,19 @@ export function ShogiBoard({ state, legalMoves, onMove }: ShogiBoardProps) {
             const key = `${rowIndex}:${colIndex}`;
             const canSelect = selectable.has(key);
             const canMove = destinationMap.has(key);
+            const isSelected = selected !== null && "row" in selected && selected.row === rowIndex && selected.col === colIndex;
+            const isLastFrom = lastMove?.from?.row === rowIndex && lastMove.from.col === colIndex;
+            const isLastTo = lastMove?.to.row === rowIndex && lastMove.to.col === colIndex;
             return (
               <button
                 aria-label={`${rowIndex + 1}行 ${colIndex + 1}列`}
-                className={canMove ? "cell legal" : "cell"}
+                className={[
+                  "cell",
+                  canMove ? "legal" : "",
+                  isSelected ? "selected" : "",
+                  isLastFrom || isLastTo ? "last-move" : "",
+                  isLastTo ? "last-to" : ""
+                ].join(" ")}
                 disabled={!canSelect && !canMove}
                 key={key}
                 onClick={() => clickCell(rowIndex, colIndex)}

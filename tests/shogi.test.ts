@@ -6,6 +6,7 @@ import {
   isShogiInCheck,
   type ShogiPiece
 } from "../src/games/shogi/shogi";
+import { chooseShogiMove } from "../src/games/shogi/ai";
 
 describe("shogi", () => {
   it("generates initial moves", () => {
@@ -27,5 +28,16 @@ describe("shogi", () => {
     board[0][4] = { owner: "white", kind: "K" };
     board[8][4] = { owner: "black", kind: "R" };
     expect(isShogiInCheck({ ...state, board }, "white")).toBe(true);
+  });
+
+  it("prefers winning material with the shogi AI", () => {
+    const state = createInitialShogiState();
+    const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));
+    board[8][4] = { owner: "black", kind: "K" };
+    board[0][0] = { owner: "white", kind: "K" };
+    board[4][4] = { owner: "black", kind: "R" };
+    board[4][5] = { owner: "white", kind: "B" };
+    const move = chooseShogiMove({ ...state, board, currentPlayer: "black" }, "intermediate");
+    expect(move?.to).toEqual({ row: 4, col: 5 });
   });
 });

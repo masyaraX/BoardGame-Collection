@@ -45,7 +45,7 @@ export interface GameAdapter<TState, TMove> {
 export const oppositePlayer = (player: Player): Player => (player === "black" ? "white" : "black");
 
 export const defaultSettings: Settings = {
-  difficulty: "beginner",
+  difficulty: "intermediate",
   bgmVolume: 40,
   seVolume: 60,
   theme: "wood",
