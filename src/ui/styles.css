@@ -334,6 +334,30 @@ h2 {
   font-weight: 800;
 }
 
+.crash-panel {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+  margin: 18vh auto 0;
+  padding: 22px;
+  border: 1px solid rgba(31, 36, 33, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 32px rgba(30, 23, 9, 0.08);
+}
+
+.crash-panel p {
+  margin: 0;
+}
+
+.crash-panel button {
+  justify-self: start;
+  padding: 10px 14px;
+  background: #245f43;
+  color: #ffffff;
+  font-weight: 700;
+}
+
 @media (max-width: 860px) {
   .topbar,
   .layout {
