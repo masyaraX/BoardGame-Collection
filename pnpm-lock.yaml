@@ -14,6 +14,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.7(react@19.2.7)
+      tsshogi:
+        specifier: ^2.3.4
+        version: 2.3.4
       zustand:
         specifier: ^5.0.6
         version: 5.0.14(@types/react@19.2.17)(react@19.2.7)
@@ -1345,6 +1348,9 @@ packages:
     engines: {node: '>=18.12'}
     peerDependencies:
       typescript: '>=4.8.4'
+
+  tsshogi@2.3.4:
+    resolution: {integrity: sha512-+nl6SWiMJfxmNCMG4KsnDE+ozZZsovZaBZGvSM52DJQiShU05HdgwbxalvkiZVQBzcTib75CeFzfZiEPuS5haQ==}
 
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
@@ -2725,6 +2731,8 @@ snapshots:
   ts-api-utils@2.5.0(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
+
+  tsshogi@2.3.4: {}
 
   type-check@0.4.0:
     dependencies:

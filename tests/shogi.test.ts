@@ -9,10 +9,15 @@ import {
 } from "../src/games/shogi/shogi";
 import { chooseShogiMove } from "../src/games/shogi/ai";
 import { findShogiMateMove } from "../src/games/shogi/checkmate";
+import { shogiStateToSFEN } from "../src/games/shogi/tsshogiBridge";
 
 describe("shogi", () => {
   it("generates initial moves", () => {
-    expect(getShogiLegalMoves(createInitialShogiState()).length).toBeGreaterThan(0);
+    expect(getShogiLegalMoves(createInitialShogiState()).filter((move) => move.resign !== true)).toHaveLength(30);
+  });
+
+  it("exports the standard initial position as SFEN", () => {
+    expect(shogiStateToSFEN(createInitialShogiState())).toBe("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
   });
 
   it("moves a pawn forward", () => {

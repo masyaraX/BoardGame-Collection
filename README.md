@@ -6,6 +6,7 @@
 
 - React + TypeScript Strict + Vite
 - Zustand による設定・戦績状態管理
+- MIT ライセンスの tsshogi による将棋局面/SFEN/合法手検証
 - LocalStorage による設定、戦績、対局中データ保存
 - 将棋、五目並べ、オセロのゲームロジックと UI 分離
 - AI 対戦、2 人対戦、AI VS AI 観戦モード
@@ -46,6 +47,8 @@ tests/
 
 ## TODO
 
+- YaneuraOu / GPSFish などの GPL 系 USI エンジンを使う場合のライセンス方針決定
+- 将棋エンジンを WASM またはサーバー USI 連携で差し替える
 - 将棋の打ち歩詰め、連珠の禁じ手詳細判定を厳密化
 - AI の探索深さ、キャッシュ、時間制限を共通エンジン化
 - E2E テスト追加

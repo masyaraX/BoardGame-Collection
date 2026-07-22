@@ -1,5 +1,6 @@
 import { oppositePlayer, type GameAdapter, type Player, type Result } from "../../common/types";
 import { generateRawShogiPieceMoves, generateShogiPseudoLegalMoves } from "./moveGeneration";
+import { generateTsshogiLegalMoves } from "./tsshogiBridge";
 
 export type PieceKind = "K" | "R" | "B" | "G" | "S" | "N" | "L" | "P";
 export type PromotedKind = "PR" | "PB" | "PS" | "PN" | "PL" | "PP";
@@ -150,6 +151,12 @@ const isPawnDropMate = (state: ShogiState, move: ShogiMove): boolean => {
 
 export const getShogiLegalMoves = (state: ShogiState, enforcePawnDropMate = true): ShogiMove[] => {
   if (state.resignedBy !== null) return [];
+  if (enforcePawnDropMate) {
+    const externalMoves = generateTsshogiLegalMoves(state);
+    if (externalMoves !== null) {
+      return [...externalMoves.filter((move) => !capturesKing(state, move)), { to: { row: -1, col: -1 }, resign: true }];
+    }
+  }
   const moves = [...generateShogiPseudoLegalMoves(state), { to: { row: -1, col: -1 }, resign: true }];
   return moves.filter((move) => {
     if (move.resign === true) return true;
