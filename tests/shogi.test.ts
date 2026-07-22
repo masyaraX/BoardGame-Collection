@@ -1,0 +1,31 @@
+import { describe, expect, it } from "vitest";
+import {
+  applyShogiMove,
+  createInitialShogiState,
+  getShogiLegalMoves,
+  isShogiInCheck,
+  type ShogiPiece
+} from "../src/games/shogi/shogi";
+
+describe("shogi", () => {
+  it("generates initial moves", () => {
+    expect(getShogiLegalMoves(createInitialShogiState()).length).toBeGreaterThan(0);
+  });
+
+  it("moves a pawn forward", () => {
+    const state = applyShogiMove(createInitialShogiState(), {
+      from: { row: 6, col: 4 },
+      to: { row: 5, col: 4 }
+    });
+    expect(state.board[5][4]?.kind).toBe("P");
+    expect(state.currentPlayer).toBe("white");
+  });
+
+  it("detects direct rook check", () => {
+    const state = createInitialShogiState();
+    const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));
+    board[0][4] = { owner: "white", kind: "K" };
+    board[8][4] = { owner: "black", kind: "R" };
+    expect(isShogiInCheck({ ...state, board }, "white")).toBe(true);
+  });
+});
