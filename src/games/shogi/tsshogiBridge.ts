@@ -104,9 +104,11 @@ const tsshogiMoveToShogiMove = (move: import("tsshogi").Move): ShogiMove | null 
 
 const addIfValid = (position: Position, moves: ShogiMove[], from: Square | PieceType, to: Square): void => {
   const move = position.createMove(from, to);
-  if (move === null || !position.isValidMove(move) || position.isPawnDropMate(move)) return;
-  const converted = tsshogiMoveToShogiMove(move);
-  if (converted !== null) moves.push(converted);
+  if (move === null) return;
+  if (position.isValidMove(move) && !position.isPawnDropMate(move)) {
+    const converted = tsshogiMoveToShogiMove(move);
+    if (converted !== null) moves.push(converted);
+  }
   const promoted = move.withPromote();
   if (promoted.promote && position.isValidMove(promoted)) {
     const promotedConverted = tsshogiMoveToShogiMove(promoted);

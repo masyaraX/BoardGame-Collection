@@ -58,6 +58,20 @@ describe("shogi", () => {
     expect(moves).toContainEqual({ from: { row: 2, col: 4 }, to: { row: 1, col: 4 }, promote: true });
   });
 
+  it("allows a pawn on the second rank to advance with forced promotion", () => {
+    const state = createInitialShogiState();
+    const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));
+    board[8][8] = { owner: "black", kind: "K" };
+    board[0][8] = { owner: "white", kind: "K" };
+    board[1][4] = { owner: "black", kind: "P" };
+    const position = { ...state, board, currentPlayer: "black" as const };
+    const moves = getShogiLegalMoves(position);
+    const pawnMoves = moves.filter((move) => move.from?.row === 1 && move.from.col === 4);
+
+    expect(pawnMoves).toEqual([{ from: { row: 1, col: 4 }, to: { row: 0, col: 4 }, promote: true }]);
+    expect(applyShogiMove(position, pawnMoves[0]).board[0][4]?.kind).toBe("PP");
+  });
+
   it("prefers winning material with the shogi AI", () => {
     const state = createInitialShogiState();
     const board: (ShogiPiece | null)[][] = state.board.map((row) => row.map(() => null));
