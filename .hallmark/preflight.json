@@ -1,0 +1,9 @@
+{
+  "scannedAt": "2026-07-24",
+  "framework": "React 19 + Vite 7",
+  "fontStack": "Japanese system serif for display, Japanese system sans-serif for UI",
+  "palette": "Existing warm board palette with forest accent, normalized into CSS tokens",
+  "motion": "motion-cut; CSS transitions only",
+  "spacing": "4px-based named CSS scale",
+  "scope": "single-page game workbench"
+}

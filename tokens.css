@@ -1,0 +1,94 @@
+:root {
+  --font-display: "BIZ UDPMincho", "Yu Mincho", "Hiragino Mincho ProN", serif;
+  --font-body: "BIZ UDGothic", "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+
+  --color-paper: oklch(96% 0.012 88);
+  --color-surface: oklch(99% 0.006 88);
+  --color-surface-muted: oklch(94% 0.015 88);
+  --color-ink: oklch(24% 0.02 150);
+  --color-ink-muted: oklch(48% 0.025 150);
+  --color-rule: oklch(82% 0.02 88);
+  --color-rule-strong: oklch(56% 0.035 65);
+  --color-accent: oklch(42% 0.09 153);
+  --color-accent-hover: oklch(36% 0.085 153);
+  --color-accent-ink: oklch(98% 0.005 88);
+  --color-focus: oklch(58% 0.16 250);
+  --color-danger: oklch(48% 0.13 29);
+  --color-danger-soft: oklch(91% 0.04 29);
+  --color-history: oklch(67% 0.12 73);
+  --color-shadow: oklch(22% 0.025 65 / 16%);
+  --color-shadow-soft: oklch(22% 0.025 65 / 8%);
+
+  --color-board: oklch(76% 0.105 76);
+  --color-board-hover: oklch(82% 0.105 78);
+  --color-board-selected: oklch(86% 0.09 81);
+  --color-board-line: oklch(42% 0.055 63 / 64%);
+  --color-board-edge: oklch(31% 0.05 58);
+  --color-piece-top: oklch(91% 0.09 83);
+  --color-piece-bottom: oklch(78% 0.12 75);
+  --color-piece-edge: oklch(40% 0.075 58);
+  --color-piece-ink: oklch(18% 0.02 70);
+  --color-piece-highlight: oklch(99% 0.005 88 / 48%);
+  --color-othello-board: oklch(49% 0.115 151);
+  --color-stone-black: oklch(18% 0.012 150);
+  --color-stone-white: oklch(96% 0.009 88);
+  --color-stone-shadow: oklch(12% 0.01 150 / 28%);
+  --color-legal: oklch(42% 0.1 153 / 48%);
+  --color-legal-soft: oklch(42% 0.1 153 / 22%);
+
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+
+  --text-xs: 0.72rem;
+  --text-sm: 0.84rem;
+  --text-md: 0.98rem;
+  --text-lg: 1.18rem;
+  --text-xl: 1.55rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 100ms;
+  --dur-short: 160ms;
+  --dur-long: 300ms;
+  --size-control: 2.75rem;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+}
+
+.theme-light {
+  --color-paper: oklch(97% 0.009 92);
+  --color-surface: oklch(99.5% 0.003 92);
+  --color-surface-muted: oklch(95% 0.012 92);
+  --color-ink: oklch(23% 0.02 150);
+  --color-ink-muted: oklch(48% 0.025 150);
+  --color-rule: oklch(84% 0.016 92);
+}
+
+.theme-dark {
+  --color-paper: oklch(22% 0.022 157);
+  --color-surface: oklch(27% 0.026 157);
+  --color-surface-muted: oklch(31% 0.03 157);
+  --color-ink: oklch(94% 0.012 92);
+  --color-ink-muted: oklch(74% 0.018 150);
+  --color-rule: oklch(40% 0.03 157);
+  --color-rule-strong: oklch(61% 0.04 150);
+  --color-accent: oklch(72% 0.11 153);
+  --color-accent-hover: oklch(78% 0.1 153);
+  --color-accent-ink: oklch(20% 0.025 157);
+  --color-danger-soft: oklch(32% 0.055 29);
+  --color-shadow: oklch(10% 0.02 157 / 30%);
+  --color-shadow-soft: oklch(10% 0.02 157 / 18%);
+}
+
+.theme-wood {
+  --color-paper: oklch(91% 0.055 82);
+  --color-surface: oklch(97% 0.022 87);
+  --color-surface-muted: oklch(93% 0.035 84);
+  --color-rule: oklch(78% 0.045 76);
+}

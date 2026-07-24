@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Flag, LoaderCircle, RotateCcw, Undo2 } from "lucide-react";
 import type { GameId, PlayMode, Player, Settings } from "../../common/types";
 import { saveGameState } from "../../save/storage";
 import { games, type AnyGameState, type AnyMove } from "../gameRegistry";
@@ -14,6 +15,7 @@ interface GameViewProps {
 }
 
 const playerLabel: Record<Player, string> = { black: "黒", white: "白" };
+const gameLabel: Record<GameId, string> = { shogi: "将棋", gomoku: "五目並べ", othello: "オセロ" };
 
 const moveNumberLabel = (state: AnyGameState): string => {
   const history = "history" in state ? state.history : [];
@@ -30,6 +32,7 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
   const legalMoves = useMemo(() => registered.adapter.getLegalMoves(state), [registered, state]);
   const passMove = legalMoves.find((move) => "pass" in move && move.pass === true);
   const resignMove = legalMoves.find((move) => "resign" in move && move.resign === true);
+  const currentPlayer = registered.adapter.getCurrentPlayer(state);
 
   useEffect(() => {
     setState(registered.adapter.createInitialState());
@@ -91,27 +94,49 @@ export function GameView({ gameId, mode, settings, onResult }: GameViewProps) {
   };
 
   return (
-    <section className="game-shell">
-      <div className="toolbar">
-        <div>
-          <strong>{result.winner === null ? `${playerLabel[registered.adapter.getCurrentPlayer(state)]}番` : "終局"}</strong>
-          <span>{result.winner === null ? moveNumberLabel(state) : ""}</span>
-          <span>{isAiThinking ? "AI思考中" : result.reason}</span>
+    <section className="game-shell" aria-label={`${gameLabel[gameId]}の対局`}>
+      <header className="match-strip">
+        <div className="turn-status" aria-live="polite">
+          <span className={`turn-marker ${result.winner === null ? currentPlayer : "finished"}`} aria-hidden="true" />
+          <div>
+            <span className="status-label">{result.winner === null ? "手番" : "対局結果"}</span>
+            <strong>{result.winner === null ? `${playerLabel[currentPlayer]}番` : "終局"}</strong>
+          </div>
         </div>
-        {passMove !== undefined && <button onClick={() => applyMove(passMove)}>パス</button>}
-        {resignMove !== undefined && <button onClick={() => applyMove(resignMove)}>投了</button>}
-        <button onClick={undo} disabled={past.length === 0}>一手戻す</button>
-        <button onClick={reset}>リセット</button>
+        <div className="move-status">
+          <span>{result.winner === null ? moveNumberLabel(state) : result.reason}</span>
+          <span className={isAiThinking ? "thinking" : ""}>
+            {isAiThinking && <LoaderCircle aria-hidden="true" className="spin" size={15} />}
+            {isAiThinking ? "AI思考中" : result.winner === null ? "対局中" : ""}
+          </span>
+        </div>
+        <div className="match-actions">
+          {passMove !== undefined && <button className="text-action" onClick={() => applyMove(passMove)}>パス</button>}
+          {resignMove !== undefined && (
+            <button aria-label="投了" className="text-action danger-action" onClick={() => applyMove(resignMove)} title="投了">
+              <Flag aria-hidden="true" size={16} />
+              <span>投了</span>
+            </button>
+          )}
+          <button aria-label="一手戻す" className="icon-action" onClick={undo} disabled={past.length === 0} title="一手戻す">
+            <Undo2 aria-hidden="true" size={18} />
+          </button>
+          <button aria-label="最初からやり直す" className="icon-action" onClick={reset} title="最初からやり直す">
+            <RotateCcw aria-hidden="true" size={18} />
+          </button>
+        </div>
+      </header>
+      <div className="board-stage">
+        {gameId === "shogi" && (
+          <ShogiBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
+        )}
+        {gameId === "gomoku" && (
+          <GomokuBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
+        )}
+        {gameId === "othello" && (
+          <OthelloBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
+        )}
       </div>
-      {gameId === "shogi" && (
-        <ShogiBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
-      )}
-      {gameId === "gomoku" && (
-        <GomokuBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
-      )}
-      {gameId === "othello" && (
-        <OthelloBoard state={state as never} legalMoves={legalMoves as never} lastMove={lastMove as never} onMove={applyMove} />
-      )}
     </section>
   );
 }

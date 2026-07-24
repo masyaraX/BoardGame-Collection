@@ -21,12 +21,14 @@ export function App() {
 
   return (
     <main className={`app theme-${settings.theme}`}>
-      <TopBar selectedGame={selectedGame} mode={mode} onGameChange={setGame} onModeChange={setMode} />
-      <div className="layout">
-        <GameView key={selectedGame} gameId={selectedGame} mode={mode} settings={settings} onResult={handleResult} />
-        <div className="side">
-          <SettingsPanel settings={settings} onChange={updateSettings} />
-          <StatsPanel game={selectedGame} stats={stats} />
+      <div className="app-frame">
+        <TopBar selectedGame={selectedGame} mode={mode} onGameChange={setGame} onModeChange={setMode} />
+        <div className="layout">
+          <GameView key={selectedGame} gameId={selectedGame} mode={mode} settings={settings} onResult={handleResult} />
+          <aside className="control-rail" aria-label="対局情報">
+            <SettingsPanel settings={settings} onChange={updateSettings} />
+            <StatsPanel game={selectedGame} stats={stats} />
+          </aside>
         </div>
       </div>
     </main>

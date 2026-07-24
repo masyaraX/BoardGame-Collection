@@ -95,7 +95,8 @@ export function ShogiBoard({ state, legalMoves, lastMove, onMove }: ShogiBoardPr
                   "cell",
                   canMove ? "legal" : "",
                   isSelected ? "selected" : "",
-                  isLastFrom || isLastTo ? "last-move" : "",
+                  isLastFrom ? "last-from" : "",
+                  isLastTo ? "last-move" : "",
                   isLastTo ? "last-to" : ""
                 ].join(" ")}
                 disabled={!canSelect && !canMove}
